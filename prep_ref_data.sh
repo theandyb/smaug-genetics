@@ -36,6 +36,10 @@ for i in `seq 1 22`; do
 done
 
 # mask v 37
+perl -ane 'if(/\>/){$a++;print ">$a dna:chromosome\n"}else{print;}' "$refdir/human_g1k_v37_mask/human_g1k_v37.premask.fasta" > "$refdir/human_g1k_v37_mask/human_g1k_v37.mask.fasta"
+
+rm -f "$refdir/human_g1k_v37_mask/human_g1k_v37.premask.fasta"
+
 for i in `seq 1 22`; do
 	samtools faidx "$refdir/human_g1k_v37_mask/human_g1k_v37.mask.fasta" $i | bgzip -c > "$refdir/human_g1k_v37_mask/chr$i.fasta.gz"
 	samtools faidx "$refdir/human_g1k_v37_mask/chr$i.fasta.gz"

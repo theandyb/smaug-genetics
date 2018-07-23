@@ -36,11 +36,7 @@ curl -s "ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/human_
 
 # mask v37
 mkdir "$refdir/human_g1k_v37_mask"
-bedtools maskfasta -fi "$refdir/human_g1k_v37/human_g1k_v37.fasta" -bed "$refdir/testmask2.bed" -fo "$refdir/human_g1k_v37_mask/human_g1k_v37.mask.fasta"
-
-# perl -ane 'if(/\>/){$a++;print ">$a dna:chromosome\n"}else{print;}' "$refdir/human_g1k_v37_mask/human_g1k_v37.mask.fasta" > "$refdir/human_g1k_v37_mask/human_g1k_v37.mask.fasta"
-#
-# rm -f "$refdir/human_g1k_v37_mask/human_g1k_v37.premask.fasta"
+bedtools maskfasta -fi "$refdir/human_g1k_v37/human_g1k_v37.fasta" -bed "$refdir/testmask2.bed" -fo "$refdir/human_g1k_v37_mask/human_g1k_v37.premask.fasta"
 
 # Ancestral genome
 curl -s "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/analysis_results/supporting/ancestral_alignments/human_ancestor_GRCh37_e59.tar.bz2" > "$refdir/human_ancestor_GRCh37_e59.tar.bz2"
