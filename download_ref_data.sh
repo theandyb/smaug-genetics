@@ -1,25 +1,10 @@
 #!/bin/bash
 
 #############################################################################
-# Script downloads and formats reference data
+# Script downloads reference data and does some of the computationally lighter
+# formatting.
 #############################################################################
-
-# Function from https://gist.github.com/pkuczynski/8665367
-parse_yaml() {
-   local prefix=$2
-   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-   sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
-        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-   awk -F$fs '{
-      indent = length($1)/2;
-      vname[indent] = $2;
-      for (i in vname) {if (i > indent) {delete vname[i]}}
-      if (length($3) > 0) {
-         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
-      }
-   }'
-}
+source ./parse_yaml.sh
 
 # read yaml file
 eval $(parse_yaml _config.yaml "config_")
@@ -37,17 +22,6 @@ cd $refdir
 #############################################################################
 curl -s "https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes" > "$refdir/hg19.genome"
 
-# Make fixed-width windows
-bedtools makewindows -g "$refdir/hg19.genome" -w 1000000 | grep -Ev "_|X|Y|M" | sort -k 1,1 -k2,2n > "$refdir/genome.1000kb.sorted.bed"
-
-bedtools makewindows -g "$refdir/hg19.genome" -w 5000000 | grep -Ev "_|X|Y|M" | sort -k 1,1 -k2,2n > "$refdir/genome.5000kb.sorted.bed"
-
-bedtools makewindows -g "$refdir/hg19.genome" -w 100000 | grep -Ev "_|X|Y|M" | sort -k 1,1 -k2,2n > "$refdir/genome.100kb.sorted.bed"
-
-bedtools makewindows -g "$refdir/hg19.genome" -w 10000 | grep -Ev "_|X|Y|M" | sort -k 1,1 -k2,2n > "$refdir/genome.10kb.sorted.bed"
-
-bedtools makewindows -g "$refdir/hg19.genome" -w 3000000000 | grep -Ev "_|X|Y|M" | sort -k 1,1 -k2,2n > "$refdir/genome.full.sorted.bed"
-
 ##############################################################################
 ## 1000G strict mask
 ##############################################################################
@@ -60,35 +34,14 @@ curl -s  "ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/supporting/a
 mkdir "$refdir/human_g1k_v37"
 curl -s "ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/human_g1k_v37.fasta.gz" | gunzip -c > "$refdir/human_g1k_v37/human_g1k_v37.fasta"
 
-for i in `seq 1 22`; do
-  samtools faidx "$refdir/human_g1k_v37/human_g1k_v37.fasta" $i | bgzip -c > "$refdir/human_g1k_v37/chr$i.fasta.gz"
-  samtools faidx "$refdir/human_g1k_v37/chr$i.fasta.gz"
-done
-
 # mask v37
 mkdir "$refdir/human_g1k_v37_mask"
-bedtools maskfasta -fi "$refdir/human_g1k_v37/human_g1k_v37.fasta" -bed "$refdir/testmask2.bed" -fo "$refdir/human_g1k_v37_mask/human_g1k_v37.mask.fasta"
-
-# perl -ane 'if(/\>/){$a++;print ">$a dna:chromosome\n"}else{print;}' "$refdir/human_g1k_v37_mask/human_g1k_v37.mask.fasta" > "$refdir/human_g1k_v37_mask/human_g1k_v37.mask.fasta"
-#
-# rm -f "$refdir/human_g1k_v37_mask/human_g1k_v37.premask.fasta"
-
-for i in `seq 1 22`; do
-  samtools faidx "$refdir/human_g1k_v37_mask/human_g1k_v37.mask.fasta" $i | bgzip -c > "$refdir/human_g1k_v37_mask/chr$i.fasta.gz"
-  samtools faidx "$refdir/human_g1k_v37_mask/chr$i.fasta.gz"
-done
+bedtools maskfasta -fi "$refdir/human_g1k_v37/human_g1k_v37.fasta" -bed "$refdir/testmask2.bed" -fo "$refdir/human_g1k_v37_mask/human_g1k_v37.premask.fasta"
 
 # Ancestral genome
 curl -s "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/analysis_results/supporting/ancestral_alignments/human_ancestor_GRCh37_e59.tar.bz2" > "$refdir/human_ancestor_GRCh37_e59.tar.bz2"
 
 tar -vjxf "$refdir/human_ancestor_GRCh37_e59.tar.bz2"
-
-for i in `seq 1 22`; do
-  echo "$refdir/human_ancestor_GRCh37_e59/human_ancestor_$i.fa"
-  cat "$refdir/human_ancestor_GRCh37_e59/human_ancestor_$i.fa" | sed "s,^>.*,>$i," | bgzip -c > "$refdir/human_ancestor_GRCh37_e59/human_ancestor_$i.fa.gz"
-  samtools faidx "$refdir/human_ancestor_GRCh37_e59/human_ancestor_$i.fa.gz"
-done
-
 #############################################################################
 # GC content in 10kb windows
 #############################################################################
