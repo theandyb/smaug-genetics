@@ -25,7 +25,7 @@ parse_yaml() {
 eval $(parse_yaml _config.yaml "config_")
 
 refdir="$config_parentdir/reference_data"
-mkdir $refdir
+#mkdir $refdir
 
 curdir=${PWD}
 # echo $curdir
@@ -48,9 +48,9 @@ bedtools makewindows -g "$refdir/hg19.genome" -w 10000 | grep -Ev "_|X|Y|M" | so
 
 bedtools makewindows -g "$refdir/hg19.genome" -w 3000000000 | grep -Ev "_|X|Y|M" | sort -k 1,1 -k2,2n > "$refdir/genome.full.sorted.bed"
 
-#############################################################################
-# 1000G strict mask
-#############################################################################
+##############################################################################
+## 1000G strict mask
+##############################################################################
 curl -s  "ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/supporting/accessible_genome_masks/20140520.strict_mask.autosomes.bed" | bedtools complement -i - -g "$refdir/hg19.genome" | bedtools sort | awk 'match($1, /chr[0-9]+$/) {print $0}' > "$refdir/testmask2.bed"
 
 #############################################################################
@@ -82,6 +82,12 @@ done
 curl -s "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/analysis_results/supporting/ancestral_alignments/human_ancestor_GRCh37_e59.tar.bz2" > "$refdir/human_ancestor_GRCh37_e59.tar.bz2"
 
 tar -vjxf "$refdir/human_ancestor_GRCh37_e59.tar.bz2"
+
+for i in `seq 1 22`; do
+  echo "$refdir/human_ancestor_GRCh37_e59/human_ancestor_$i.fa"
+  cat "$refdir/human_ancestor_GRCh37_e59/human_ancestor_$i.fa" | sed "s,^>.*,>$i," | bgzip -c > "$refdir/human_ancestor_GRCh37_e59/human_ancestor_$i.fa.gz"
+  samtools faidx "$refdir/human_ancestor_GRCh37_e59/human_ancestor_$i.fa.gz"
+done
 
 #############################################################################
 # GC content in 10kb windows
