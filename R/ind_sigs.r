@@ -2,7 +2,7 @@
 # Analysis by sample
 ###############################################################################
 i <- 1
-cbp <- 5
+cbp <- (adj + 1)
 
 bindir3 <- paste0(parentdir, "/motif_counts/3-mers/full")
 p2 <- "1000kb_full.txt"
@@ -18,26 +18,25 @@ get_mct_b <- function(bins){
 
 # Count singletons per 3-mer subtype per individual
 ind_counts <- full_data$sites %>%
-  mutate(Type=gsub("cpg_", "", Category2),
-    SEQA=substr(Motif, cbp-i, cbp+i),
-    SEQB=substr(Motif, cbp*3-i, cbp*3+i),
-    Motif=paste0(SEQA, "(", SEQB, ")")) %>%
+  mutate(Type = gsub("cpg_", "", Category2),
+    SEQA = substr(Motif, cbp - i, cbp + i),
+    SEQB = substr(Motif, (cbp * 3) - i, (cbp * 3) + i),
+    Motif = paste0(SEQA, "(", SEQB, ")")) %>%
   group_by(ID, Type, Motif) %>%
-  summarise(n=n())
+  summarise(n = n())
 
 # count 3-mer motifs genome-wide
 mct3 <- get_mct_b(bins1Mb) %>%
   group_by(Motif) %>%
-  summarise(nMotifs=sum(nMotifs))
+  summarise(nMotifs = sum(nMotifs))
 
 # get ids in ped file
-ped <- read.table(pedfile, header=F, stringsAsFactors=F)
+ped <- read.table(pedfile, header = F, stringsAsFactors = F)
 names(ped)[1] <- "ID"
 
-pheno <- read.table(phenofile, header=T, stringsAsFactors=F)
+pheno <- read.table(phenofile, header = T, stringsAsFactors = F)
 pheno <- pheno %>%
-  # filter(DROP==FALSE) %>%
-  dplyr::select(ID=SEQID, Sex, Case.Control, Study, DROP) %>%
+  dplyr::select(ID = SEQID, Sex, Case.Control, Study, DROP) %>%
   filter(!(is.na(ID)))
 
 qplotdat <- read.table(qplotfile, header=T, stringsAsFactors=F)
@@ -47,43 +46,33 @@ contam <- read.table(contamfile, header=T, stringsAsFactors=F)
 names(contam) <- c("ID", "FREEMIX", "CHIPMIX", "PLATE")
 
 vcfast <- read.table(vcfastfile,
-  header=T, stringsAsFactors=F, sep="\t", comment.char=" ")
-names(vcfast) <- c("ID", "SNPs", "Singletons", "Doubletons", "lt0.5", "gt0.5", "Ref", "Het", "Alt", "Heterozygosity")
+  header = T, stringsAsFactors = F, sep = "\t", comment.char = " ")
+names(vcfast) <- c("ID", "SNPs", "Singletons", "Doubletons", "lt0.5", "gt0.5",
+  "Ref", "Het", "Alt", "Heterozygosity")
 
-# ped <- merge(ped, contam, by.x="V1", by.y="SAMPLE")
-# ped2a<-merge(ped, vcfast, by="ID")
 
-pcs <- read.table(pcfile, header=F, stringsAsFactors=F, skip=1)
-names(pcs) <- c("ID", paste0("PC",1:10), "Study")
+pcs <- read.table(pcfile, header = F, stringsAsFactors = F, skip = 1)
+names(pcs) <- c("ID", paste0("PC", 1:10), "Study")
 pcs <- pcs %>%
   dplyr::select(-Study)
 
-p1 <- merge(pheno, pcs, by="ID")
-p2 <- merge(p1, vcfast, by="ID")
-p3 <- merge(p2, contam, by="ID", all.x=TRUE) %>% distinct(ID, .keep_all = TRUE)
+p1 <- merge(pheno, pcs, by = "ID")
+p2 <- merge(p1, vcfast, by = "ID")
+p3 <- merge(p2, contam, by = "ID", all.x = TRUE) %>%
+  distinct(ID, .keep_all = TRUE)
 
 # Get PED ids ending with B (not in ped2 file)
-# paste0(ped2$ID, "B")
-ped_b_ids <- p3[!(p3$ID %in% qplotdat$ID),] %>%
-  dplyr::select(ID_B=ID) %>%
-  mutate(ID=gsub("B", "", ID_B))
-
-ped1B <- ped_b_ids %>%
-  filter(ID %in% ped_b_ids$ID_B) %>%
-  mutate(ID=gsub("B", "", ID))
-
- # ped %>%
- #  filter(ID %in% p1_ids$ID)
+ped_b_ids <- p3[!(p3$ID %in% qplotdat$ID), ] %>%
+  dplyr::select(ID_B = ID) %>%
+  mutate(ID = gsub("B", "", ID_B))
 
 # Subset ped2 to B ids
 qplotB <- qplotdat %>%
   filter(ID %in% ped_b_ids$ID) %>%
-  mutate(ID=paste0(ID, "B"))
+  mutate(ID = paste0(ID, "B"))
 
 qplot2 <- rbind(qplotdat, qplotB)
-p4 <- merge(p3, qplot2, by="ID")
-
-# ped[(ped$V1 %in% paste0(ped2$ID, "B")),] %>% dplyr::select(V1)
+p4 <- merge(p3, qplot2, by = "ID")
 
 # get per-person rates and filter IDs
 ind_counts <- merge(ind_counts, mct3, by="Motif") %>%
@@ -91,39 +80,18 @@ ind_counts <- merge(ind_counts, mct3, by="Motif") %>%
   mutate(ERV_rel_rate=n/nMotifs,
     subtype=paste0(Type, "_", Motif))
 
-# Coerce from long to wide format
-# ind_wide <- ind_counts  %>%
-#   dplyr::select(ID, subtype, n) %>%
-#   spread(subtype, n)
-
-# # Alternative to ERV rates--use
-# iw2 <- sweep(ind_wide[,-1], 2, colSums(ind_wide[,-1]),`/`)
-# ind_wide <- data.frame(ID=ind_wide[,1], iw2)
-
-# # Run PCA on sample matrix
-# ind_pca <- prcomp(scale(ind_wide[,-c(1)]))
-#
-# # Cumulative variance explained by 96 PCs
-# ind_cumvar <- cumsum((ind_pca$sdev)^2) / sum(ind_pca$sdev^2)
-#
-# # Data frame containing sample IDs and components
-# ind_wide_c_pcs <- cbind(ID=ind_wide$ID, as.data.frame(ind_pca$x))
-#
-# # Run NMF on sample matrix; get top signature for each sample
-# # set.seed(36087318)
-#
-# # ner<-nmfEstimateRank(as.matrix(ind_wide[,-c(1)]), seq(2,5), nrun=10)
-
 ###############################################################################
 # get signature loadings
 ###############################################################################
 get_loads <- function(widedat, nmfdat){
   sigloads <- data.frame(subtype=names(widedat),
-    sig1=coef(nmfdat)[1,],
-    sig2=coef(nmfdat)[2,],
-    sig3=coef(nmfdat)[3,]) %>%
-    mutate(sig1=sig1/sum(sig1), sig2=sig2/sum(sig2), sig3=sig3/sum(sig3)) %>%
-    gather(subtype, value)
+    sig1 = coef(nmfdat)[1, ],
+    sig2 = coef(nmfdat)[2, ],
+    sig3 = coef(nmfdat)[3, ]) %>%
+    mutate(sig1 = sig1 / sum(sig1),
+      sig2 = sig2 / sum(sig2),
+      sig3 = sig3 / sum(sig3)) %>%
+    gather(sig, value, sig1:sig3)
 
   names(sigloads) <- c("subtype", "sig", "value")
   sigloads <- sigloads %>%
