@@ -29,7 +29,7 @@ install_github('carjed/smaug', quiet=TRUE)
 install_github('slowkow/ggrepel', quiet=TRUE)
 gh_packages <- c("smaug", "ggrepel")
 invisible(sapply(gh_packages, function(x)
-	suppressMessages(require(x, character.only=TRUE))))
+	suppressMessages(require(x, character.only = TRUE))))
 
 # install/load CRAN packages
 packages <- c("tidyverse", "broom", "RColorBrewer", "MASS", "boot", "speedglm",
@@ -113,25 +113,25 @@ timefun("./R/av_comp.r")
 # Prepare singleton input for logit model
 ##############################################################################
 if(build_logit){
-	cat("Preparing data for logistic regression model...\n")
+cat("Preparing data for logistic regression model...\n")
 
-	i<-3
-	for(chr in 1:22){
-		posfile <- paste0(parentdir,
-			"/output/logmod_data/chr", chr, "_sites.txt")
-		dat <- full_data$sites %>%
-		# summfile1 <- sites %>%
-			# filter(Category==categ) %>%
-			filter(CHR==chr) %>%
-			mutate(Type=gsub("cpg_", "", Category2),
-				SEQA=substr(Motif, cbp-i, cbp+i),
-				SEQB=substr(Motif, cbp*3-i, cbp*3+i),
-				Sequence=paste0(SEQA, "(", SEQB, ")")) %>%
-			dplyr::select(CHR, POS, Sequence, Type) %>%
-			mutate(mut=1) %>%
-			spread(Type, mut, fill=0)
+i<-3
+for(chr in 1:22){
+	posfile <- paste0(parentdir,
+	"/output/logmod_data/chr", chr, "_sites.txt")
+	dat <- full_data$sites %>%
+	# summfile1 <- sites %>%
+	# filter(Category==categ) %>%
+	filter(CHR==chr) %>%
+	mutate(Type=gsub("cpg_", "", Category2),
+	SEQA=substr(Motif, cbp-i, cbp+i),
+	SEQB=substr(Motif, cbp*3-i, cbp*3+i),
+	Sequence=paste0(SEQA, "(", SEQB, ")")) %>%
+	dplyr::select(CHR, POS, Sequence, Type) %>%
+	mutate(mut=1) %>%
+	spread(Type, mut, fill=0)
 
-		write.table(dat, posfile, col.names=F, row.names=F, quote=F, sep="\t")
+	write.table(dat, posfile, col.names=F, row.names=F, quote=F, sep="\t")
 	}
 }
 
@@ -152,8 +152,8 @@ if(file.exists(sitefile)){
 	timefun("./R/validation.r")
 
 	# Analyze effects of genomic features
-	cat("Analyzing genomic features...\n")
-	timefun("./R/coef_summary.r")
+cat("Analyzing genomic features...\n")
+timefun("./R/coef_summary.r")
 
 	# Run region-based models
 	if(negbin_model){
