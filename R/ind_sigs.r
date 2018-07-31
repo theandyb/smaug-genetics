@@ -56,13 +56,13 @@ names(pcs) <- c("ID", paste0("PC", 1:10), "Study")
 pcs <- pcs %>%
   dplyr::select(-Study)
 
-p1 <- merge(pheno, pcs, by = "ID")
-p2 <- merge(p1, vcfast, by = "ID")
-p3 <- merge(p2, contam, by = "ID", all.x = TRUE) %>%
-  distinct(ID, .keep_all = TRUE)
+merged <- pheno %>% merge(pcs, by = "ID") %>%
+	merge(vcfast, by = "ID") %>%
+	merge(contam, by = "ID", all.x = TRUE) %>%
+	distinct(ID, .keep_all = TRUE)
 
 # Get PED ids ending with B (not in ped2 file)
-ped_b_ids <- p3[!(p3$ID %in% qplotdat$ID), ] %>%
+ped_b_ids <- merged[!(merged$ID %in% qplotdat$ID), ] %>%
   dplyr::select(ID_B = ID) %>%
   mutate(ID = gsub("B", "", ID_B))
 
@@ -72,11 +72,11 @@ qplotB <- qplotdat %>%
   mutate(ID = paste0(ID, "B"))
 
 qplot2 <- rbind(qplotdat, qplotB)
-p4 <- merge(p3, qplot2, by = "ID")
+merged <- merge(merged, qplot2, by = "ID")
 
 # get per-person rates and filter IDs
-ind_counts <- merge(ind_counts, mct3, by="Motif") %>%
-  filter(ID %in% p4$ID) %>%
+ind_counts2 <- merge(ind_counts, mct3, by="Motif") %>%
+  filter(ID %in% merged$ID) %>%
   mutate(ERV_rel_rate=n/nMotifs,
     subtype=paste0(Type, "_", Motif))
 
@@ -154,13 +154,9 @@ plot_ind_sigs2 <- function(sigdat){
 ###############################################################################
 ind_wide <- ind_counts  %>%
   dplyr::select(ID, subtype, ERV_rel_rate) %>%
-  # dplyr::select(ID, subtype, n) %>%
   spread(subtype, ERV_rel_rate)
-  # spread(subtype, n)
 
 ind_wide[is.na(ind_wide)] <- 0
-
-# ind_wide <- ind_wide[,-c(64,60,56,52)]
 
 ind_nmf <- nmf(as.matrix(ind_wide[,-c(1)]), 3, nrun=10)
 ind_pred <- predict(ind_nmf, "rows", prob=T)
@@ -171,12 +167,6 @@ ggsave(paste0(parentdir, "/images/sigloads.png"), width=12, height=6)
 
 # Add NMF basis and predicted class to data frame
 nmfdat1 <- data.frame(ID=ind_wide$ID, basis(ind_nmf), sig=ind_pred[[1]])
-
-# head(nmfdat)
-# summary(nmfdat1$sig)
-#
-# samples <- ped %>%
-#   dplyr::select(ID=V1, Study=V7, BP=V6, PC1=V14, PC2=V15, PC3=V16, PC4=V17)
 
 nmfdat1 <- merge(nmfdat1, p4, by="ID") %>%
   mutate(sum=X1+X2+X3,
@@ -192,19 +182,6 @@ svmdat <- nmfdat1 %>%
   filter(!(is.na(PLATE))) %>%
   filter(!(is.na(CHIPMIX)))
 
-# nsvm<-svm(factor(top_r)~Singletons+Heterozygosity+CHIPMIX+PLATE+insmedian+zeromap+coverage+gcbias, svmdat)
-# nsvm<-svm(sig1~Singletons+Heterozygosity+CHIPMIX+PLATE+insmedian+zeromap+coverage+gcbias, svmdat)
-# pred_class <- predict(nsvm, svmdat)
-# cor(svmdat$sig1, pred_class)
-
-
-
-
-
-# plates <- read.table(plates, header=F, stringsAsFactors=F)
-# names(plates) <- c("ID", "PLATE")
-# nmfdat1 <- merge(nmfdat1, plates, by="ID")
-
 ind_nmf_long <- nmfdat1 %>%
   gather(Signature, prob, sig1:sig3) %>%
   mutate(Signature=as.numeric(gsub("sig", "", Signature))) %>%
@@ -218,7 +195,6 @@ ggsave(paste0(parentdir, "/images/by_ind_all_by_sig.png"), width=8, height=6)
 
 inl2 <- ind_nmf_long %>%
   group_by(ID) %>%
-  # filter(Signature!=1) %>%
   filter(prob==max(prob))
 
 ggplot(inl2, aes(x=PC1, y=PC2, colour=Signature))+
@@ -261,20 +237,6 @@ ggplot(sumdat, aes(x=sig, y=val, group=sig, fill=sig))+
   facet_wrap(~var, scales="free")
 ggsave(paste0(parentdir, "/images/gp_qc.png"))
 
-# cbind(ind_wide, g2=nmfdat1$sig) %>%
-#   mutate(g2=ifelse(g2==1, TRUE, FALSE)) %>%
-#   mutate(key=paste0(ID, "+", g2)) %>%
-#   dplyr::select(-c(ID, g2)) %>%
-#   gather(key, val) %>% setNames(c("IDf", "key2", "val")) %>%
-#   tidyr::separate(IDf, into=c("ID", "g2"), sep="[+]") %>% #head
-#   mutate(Category=substr(key2, 1, 5),
-#     Sequence=substr(key2, 7, 14)) %>%
-#   group_by(Category, Sequence) %>%
-#   do(tidy(t.test(val~g2, data=.))) %>% #head %>% data.frame
-#   dplyr::select(Category, Sequence, estimate1, estimate2, p.value) %>%
-#   # filter(Category=="GC_TA")
-#   filter(p.value<0.05/96)
-
 ###############################################################################
 # IDs to keep
 ###############################################################################
@@ -283,8 +245,6 @@ keep_cis <- ind_nmf_long %>%
   group_by(Signature) %>%
   summarise_each(funs(mean,sd)) %>%
   mutate(conf.low=mean-1.96*sd, conf.high=mean+1.96*sd)
-  # do(tidy(t.test(.$prob))) %>%
-  # dplyr::select(cluster, conf.low, conf.high)
 
 nmfdat1 <- nmfdat1 %>%
   mutate(flag=ifelse(sig1 > keep_cis[1,]$conf.high, "sig1",
@@ -304,25 +264,6 @@ ind_nmf_long %>%
   filter(ID %in% keep_ids$ID) %>%
 plot_ind_sigs()
 ggsave(paste0(parentdir, "/images/by_ind_post_filter.png"), width=8, height=6)
-
-# cnv_drops <- read.table("/net/snowwhite/home/jedidiah/drops.txt", header=F)
-# names(cnv_drops) <- "ID"
-# cnv_drops$gp <- "CNV"
-
-
-
-# ped2$drop <- (ped2$HAID %in% drop_ids$ID)
-# ped2 %>% do(tidy(t.test(gcbias~drop, data=.)))
-# ped2 %>%
-#   group_by(drop) %>%
-#   summarise(cov=mean(coverage),
-#     sing=mean(Singletons),
-#     gcbias=mean(gcbias),
-#     insmedian=mean(insmedian))
-
-# plates <- read.table(plates, header=F, stringsAsFactors=F)
-# names(plates) <- c("ID", "PLATE")
-# nmfdat1 <- merge(nmfdat1, plates, by="ID")
 
 ###############################################################################
 # Repeat with kept IDs
@@ -356,19 +297,15 @@ ggsave(paste0(parentdir, "/images/by_ind_keep.png"), width=12, height=8)
 # test for significant differences between groups
 cbind(ind_wide2, g2=nmfdat2$sig) %>%
   mutate(g2=ifelse(g2==1, TRUE, FALSE)) %>%
-  # mutate(g2=(ID %in% s2ids$ID)) %>% # dplyr::select(ID, AT_CG_AAA.TTT., g2) %>% group_by(g2) %>% summarise(val=mean(AT_CG_AAA.TTT.))
-  # group_by(g2) %>%
   mutate(key=paste0(ID, "+", g2)) %>%
   dplyr::select(-c(ID, g2)) %>%
   gather(key, val) %>% setNames(c("IDf", "key2", "val")) %>%
   tidyr::separate(IDf, into=c("ID", "g2"), sep="[+]") %>% #head
-  # tidyr::separate(key2, into=c("ID", "g2"), sep="[+]") %>%
   mutate(Category=substr(key2, 1, 5),
     Sequence=substr(key2, 7, 14)) %>%
   group_by(Category, Sequence) %>%
-  do(tidy(t.test(val~g2, data=.))) %>% #head %>% data.frame
+  do(tidy(t.test(val~g2, data=.))) %>%
   dplyr::select(Category, Sequence, estimate1, estimate2, p.value) %>%
-  # filter(Category=="GC_TA")
   filter(p.value<0.05/96)
 
 ggplot()+
@@ -379,7 +316,7 @@ ggplot()+
   geom_point(data=nmfdat2[nmfdat2$sig==2,],
     aes(x=PC4, y=PC2), colour="yellow", alpha=0.3)+
   theme_bw()
-ggsave("/net/bipolar/jedidiah/mutation/images/sig_snp_pcs.png", width=8, height=8)
+ggsave(paste0(parentdir, "/images/sig_snp_pcs.png"), width=8, height=8)
 
 ###############################################################################
 # Correlate with Alexandrov's somatic signatures
