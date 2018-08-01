@@ -2,40 +2,18 @@ cbp <- 5
 i <- 3
 nbp2 <- 7
 
-# # mispolarized (HC)
-# sites_mp_hc <- full_data$sites %>%
-#   filter(ALT==AA)
-#
-# # mispolarized (HC+LC)
-# sites_mp_all <- full_data$sites %>%
-#   filter(tolower(ALT)==tolower(AA))
-#
-# # correct (HC+LC)
-# sites_c_all <- full_data$sites %>%
-#   filter(tolower(REF)==tolower(AA))
-#
-# #
-# sites_c_lc <- full_data$sites %>%
-#   filter(tolower(REF)==AA | AA %in% c("-", "N", "."))
-
-# maskaggseq <- get_aggseq(masktmp, maskmct)
-
 # correct (HC)
 sites_c_hc <- full_data$sites %>%
-  # filter(REF==AA) %>%
-  # filter(MASK==0 & REF==AA) %>%
-  # filter(tolower(REF)==tolower(AA))
   filter(!(tolower(ALT)==tolower(AA)))
-  # filter(!(ALT==AA))
 
 prop <- nrow(sites_c_hc)/nrow(full_data$sites)
 # prop <- 0.946
 
-sites_c_hc <- sites_c_hc %>%
-  # filter(MASK==0) %>%
-  mutate(SEQA=substr(Motif, cbp-i, cbp+i),
-    SEQB=substr(Motif, cbp*3-i, cbp*3+i),
-    Motif=paste0(SEQA, "(", SEQB, ")"))
+# SKIP THIS WHEN adj = 3
+#sites_c_hc <- sites_c_hc %>%
+#  mutate(SEQA=substr(Motif, cbp-i, cbp+i),
+#    SEQB=substr(Motif, cbp*3-i, cbp*3+i),
+#    Motif=paste0(SEQA, "(", SEQB, ")"))
 
 bindir <- paste0(parentdir, "/motif_counts/", nbp2, "-mers/full")
 p1 <- "motifs_full.txt"
