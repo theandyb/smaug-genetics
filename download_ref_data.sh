@@ -131,6 +131,6 @@ bedtools sort -i "$refdir/2xHARs.hg19.bed" > "$refdir/2xHARs.hg19.sort.bed"
 #############################################################################
 # Aggarwala & Voight rates
 #############################################################################
-curl -s "http://www.nature.com/ng/journal/v48/n4/extref/ng.3511-S2.xlsx" > "$refdir/AV_rates.xlsx"
+curl -s "https://media.nature.com/original/nature-assets/ng/journal/v48/n4/extref/ng.3511-S2.xlsx" > "$refdir/AV_rates.xlsx"
 
 cd $curdir

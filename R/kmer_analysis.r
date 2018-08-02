@@ -4,7 +4,7 @@ cbp <- adj+1
 ratelist <- list()
 testlist <- list()
 modlist <- list()
-for(j in 1:5){
+for(j in 2:5){
 	i <- j-1
 
 	# using nMotifs in the full file results in incorrect counts when collapsing
