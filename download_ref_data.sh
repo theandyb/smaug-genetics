@@ -42,10 +42,6 @@ bedtools maskfasta -fi "$refdir/human_g1k_v37/human_g1k_v37.fasta" -bed "$refdir
 curl -s "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/analysis_results/supporting/ancestral_alignments/human_ancestor_GRCh37_e59.tar.bz2" > "$refdir/human_ancestor_GRCh37_e59.tar.bz2"
 
 tar -vjxf "$refdir/human_ancestor_GRCh37_e59.tar.bz2"
-#############################################################################
-# GC content in 10kb windows
-#############################################################################
-bedtools nuc -fi "$refdir/human_g1k_v37/human_g1k_v37.fasta" -bed <(sed s/chr// "$refdir/genome.10kb.sorted.bed") > "$refdir/gc10kb.bed"
 
 #############################################################################
 # CpG islands
