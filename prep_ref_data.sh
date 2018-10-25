@@ -27,6 +27,11 @@ bedtools makewindows -g "$refdir/hg19.genome" -w 10000 | grep -Ev "_|X|Y|M" | so
 bedtools makewindows -g "$refdir/hg19.genome" -w 3000000000 | grep -Ev "_|X|Y|M" | sort -k 1,1 -k2,2n > "$refdir/genome.full.sorted.bed"
 
 #############################################################################
+# GC content in 10kb windows
+#############################################################################
+bedtools nuc -fi "$refdir/human_g1k_v37/human_g1k_v37.fasta" -bed <(sed s/chr// "$refdir/genome.10kb.sorted.bed") > "$refdir/gc10kb.bed"
+
+#############################################################################
 # Compress and index reference genomes
 #############################################################################
 # v 37
