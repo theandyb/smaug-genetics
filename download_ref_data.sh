@@ -55,12 +55,12 @@ curl -s  "http://web.stanford.edu/class/bios221/data/model-based-cpg-islands-hg1
 #############################################################################
 # Lamin-associated domains
 #############################################################################
-curl -s  "http://hgdownload.cse.ucsc.edu/goldenPath/hg19/database/laminB1Lads.txt.gz" | gunzip | awk 'NR>1 {print $2"\t"$3"\t"$4}' | bedtools sort -i - > "$refdir/lamin_B1_LADS2.bed"
+curl -s  "http://hgdownload.cse.ucsc.edu/goldenPath/hg19/database/laminB1Lads.txt.gz" | gunzip | awk '{print $2"\t"$3"\t"$4}' | sort -k1,1V -k2,2n > "$refdir/lamin_B1_LADS2.bed"
 
 #############################################################################
 # DNase hypersensitive sites
 #############################################################################
-curl -s "http://hgdownload.cse.ucsc.edu/goldenpath/hg19/encodeDCC/wgEncodeRegDnaseClustered/wgEncodeRegDnaseClusteredV3.bed.gz" | gunzip | cut -f1-3 | bedtools sort -i - > "$refdir/DHS.bed"
+curl -s "http://hgdownload.cse.ucsc.edu/goldenpath/hg19/encodeDCC/wgEncodeRegDnaseClustered/wgEncodeRegDnaseClusteredV3.bed.gz" | gunzip | cut -f1-3 | sort -k1,1V -k2,2n > "$refdir/DHS.bed"
 
 #############################################################################
 # Replication timing
